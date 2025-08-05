@@ -1,0 +1,171 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  background-color: #f8f8f8;
+  color: #333;
+}
+
+header {
+  background-color: #333;
+  color: white;
+  padding: 1em;
+  position: fixed;
+  top: 0;
+  width: 100%;
+  z-index: 999;
+}
+
+header h1 {
+  text-align: center;
+  font-size: 2em;
+}
+
+nav ul {
+  list-style: none;
+  display: flex;
+  justify-content: center;
+  margin-top: 0.5em;
+}
+
+nav ul li {
+  margin: 0 1em;
+}
+
+nav ul li a {
+  color: white;
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: color 0.3s ease, transform 0.3s ease;
+}
+
+nav ul li a:hover {
+  color: #ffcc00;
+  transform: scale(1.1);
+}
+
+main {
+  padding: 6em 2em 2em 2em;
+}
+
+.hero {
+  position: relative;
+  background: #fff;
+  padding: 2em;
+  text-align: center;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+.hero img {
+  width: 100%;
+  max-width: 600px;
+  border-radius: 10px;
+  margin-top: 1em;
+  transition: transform 0.3s ease;
+}
+
+.hero img:hover {
+  transform: scale(1.05);
+}
+
+.badge {
+  position: absolute;
+  top: 1em;
+  left: 1em;
+  background: red;
+  color: white;
+  padding: 0.5em;
+  font-weight: bold;
+  border-radius: 5px;
+}
+
+.banner {
+  margin-top: 2em;
+  text-align: center;
+  font-size: 1.5em;
+  background: yellow;
+  padding: 0.5em;
+  animation: blink 3s infinite;
+}
+
+@keyframes blink {
+  0% { opacity: 1; }
+  50% { opacity: 0.3; }
+  100% { opacity: 1; }
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 2em;
+  margin-top: 2em;
+}
+
+.art img {
+  width: 100%;
+  border-radius: 10px;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.2);
+  transition: transform 0.3s ease;
+}
+
+.art img:hover {
+  transform: scale(1.05);
+}
+
+.art p {
+  text-align: center;
+  margin-top: 0.5em;
+}
+
+.float-left {
+  float: left;
+  margin: 1em 2em 1em 0;
+  width: 300px;
+  border-radius: 10px;
+}
+
+ul, ol {
+  margin-left: 2em;
+  margin-top: 1em;
+  list-style-position: inside;
+}
+
+ul li::marker {
+  color: #ff6600;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1em;
+}
+
+table, th, td {
+  border: 1px solid #ccc;
+}
+
+th, td {
+  padding: 0.75em;
+  text-align: center;
+}
+
+footer {
+  text-align: center;
+  padding: 1em;
+  background: #333;
+  color: white;
+  margin-top: 2em;
+}
+
+/* Background on homepage */
+body.index {
+  background-image: url('../images/bg.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
