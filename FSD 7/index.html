@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Code Breaker — The Array Heist</title>
+
+  <!-- Google Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg:#0f1724;
+      --panel:#0b1220;
+      --accent:#06b6d4;
+      --muted:#94a3b8;
+      --success:#10b981;
+      --danger:#ef4444;
+      --cell:#0b1226;
+    }
+
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:linear-gradient(180deg,#071023 0%, #071a2a 100%);
+      font-family: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      color:#e6eef6;
+      padding:24px;
+    }
+
+    .app {
+      width:100%;
+      max-width:980px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));
+      border-radius:12px;
+      padding:18px;
+      box-shadow: 0 8px 40px rgba(2,6,23,0.7);
+      border: 1px solid rgba(255,255,255,0.03);
+    }
+
+    header {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:12px;
+    }
+    .brand {
+      display:flex;
+      gap:12px;
+      align-items:center;
+    }
+    .logo {
+      width:48px;height:48px;border-radius:8px;
+      background:linear-gradient(135deg,var(--accent),#7c3aed);
+      display:flex;align-items:center;justify-content:center;font-weight:700;color:#061523;
+      box-shadow:0 4px 18px rgba(7,16,25,0.6);
+    }
+    h1{font-size:1.1rem;margin:0}
+    p.subtitle{margin:0;color:var(--muted);font-size:0.85rem}
+
+    .controls {
+      display:flex;
+      gap:12px;
+      align-items:center;
+    }
+
+    .panel {
+      margin-top:12px;
+      background: rgba(255,255,255,0.02);
+      border-radius:10px;
+      padding:16px;
+      display:grid;
+      grid-template-columns: 1fr 360px;
+      gap:16px;
+    }
+
+    /* Left: Game board */
+    .board {
+      background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.01));
+      padding:14px;
+      border-radius:8px;
+      border:1px solid rgba(255,255,255,0.02);
+    }
+
+    .array-row {
+      display:flex;
+      gap:12px;
+      justify-content:center;
+      align-items:center;
+      margin-bottom:16px;
+    }
+
+    .cell {
+      width:64px;
+      height:66px;
+      background:var(--cell);
+      border-radius:8px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:700;
+      font-size:1.2rem;
+      color:#dbeafe;
+      position:relative;
+      transition: transform 300ms ease, box-shadow 250ms ease, opacity 250ms;
+      box-shadow: 0 6px 18px rgba(2,6,23,0.6);
+      border: 1px solid rgba(255,255,255,0.03);
+      overflow:hidden;
+    }
+    .cell.empty { color: #5b6b7a; font-weight:500; font-size:0.95rem; }
+
+    /* small index label */
+    .cell .idx {
+      position:absolute; left:6px; top:6px; font-size:10px; color:rgba(255,255,255,0.2);
+    }
+
+    /* animation classes */
+    .cell.shift-right { transform: translateX(16px) scale(0.98); }
+    .cell.shift-left  { transform: translateX(-16px) scale(0.98); }
+    .cell.fade-in { animation: fadeIn 300ms ease forwards; opacity:0; transform:scale(.97); }
+    .cell.shrink-out { animation: shrinkOut 360ms ease forwards; }
+    .cell.highlight { box-shadow: 0 8px 30px rgba(6,182,212,0.18), 0 0 0 4px rgba(6,182,212,0.06); transform: scale(1.04); }
+    .cell.match { box-shadow: 0 10px 34px rgba(16,185,129,0.2), 0 0 0 6px rgba(16,185,129,0.06); transform: scale(1.06); background: linear-gradient(180deg,#052b25,#05372b); color:#a7f3d0}
+
+    @keyframes fadeIn {
+      to { opacity:1; transform:translateY(0) scale(1); }
+      from { opacity:0; transform:translateY(6px) scale(.98); }
+    }
+    @keyframes shrinkOut {
+      to { opacity:0; transform:scale(.2); }
+    }
+
+    /* Right: Operations panel */
+    .ops {
+      background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.01));
+      padding:12px;border-radius:8px;border:1px solid rgba(255,255,255,0.02);
+      display:flex;flex-direction:column;gap:12px;
+    }
+    .ops h3 { margin:0 0 6px 0; font-size:0.95rem }
+    .row { display:flex; gap:8px; align-items:center; }
+    label{ font-size:0.85rem; color:var(--muted); }
+    input[type="number"], input[type="text"]{
+      padding:8px 10px; border-radius:6px; border:1px solid rgba(255,255,255,0.04);
+      background: rgba(255,255,255,0.02); color:inherit; width:100%;
+      outline:none;
+    }
+    input[type="number"]::-webkit-outer-spin-button, input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+    button {
+      padding:8px 10px; border-radius:8px; border:none;
+      background:var(--accent); color:#02121a; font-weight:600; cursor:pointer;
+      box-shadow: 0 8px 20px rgba(3,7,12,0.5);
+    }
+    button.ghost { background:transparent; color:var(--muted); border:1px solid rgba(255,255,255,0.03); box-shadow:none; }
+    button.warn { background:var(--danger); color:white; }
+    .small { padding:6px 8px; font-size:0.92rem; }
+
+    .feedback {
+      padding:10px 12px; border-radius:8px; min-height:44px;
+      background: rgba(255,255,255,0.01); border:1px solid rgba(255,255,255,0.02);
+      color:var(--muted); font-size:0.95rem; display:flex;align-items:center;
+    }
+    .feedback.success { color:var(--success); }
+    .feedback.error { color:var(--danger); }
+
+    .footer-row { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-top:12px; }
+    .meta { color:var(--muted); font-size:0.9rem; }
+
+    /* responsive */
+    @media (max-width:880px) {
+      .panel { grid-template-columns: 1fr; }
+      .ops { order:2 }
+    }
+
+    /* victory overlay */
+    .overlay {
+      position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+      background: rgba(2,6,23,0.6); z-index:60; display:none;
+    }
+    .overlay.show { display:flex; }
+    .modal {
+      background: linear-gradient(180deg,#07202a,#051723);
+      padding:28px;border-radius:12px;border:1px solid rgba(255,255,255,0.04);
+      text-align:center; color:#e6f6ee; width:min(540px,92vw);
+      box-shadow: 0 20px 60px rgba(2,6,23,0.8);
+    }
+    .modal h2 { margin-top:0; }
+    .sparkle {
+      width:80px;height:80px;border-radius:50%;background:linear-gradient(90deg,#ffd166,#f7971e);
+      margin:12px auto 18px auto; box-shadow: 0 12px 40px rgba(247,151,30,0.24);
+      transform: rotate(10deg);
+    }
+  </style>
+</head>
+<body>
+  <div class="app" role="application" aria-label="Code Breaker Game">
+    <header>
+      <div class="brand">
+        <div class="logo">CB</div>
+        <div>
+          <h1>Code Breaker — The Array Heist</h1>
+          <p class="subtitle">Insert, delete, and search the array to crack the secret pattern!</p>
+        </div>
+      </div>
+
+      <div class="controls">
+        <div class="meta">Level: <strong id="level-ind">1</strong></div>
+        <div class="meta">Pattern: <strong id="pattern-ind">—</strong></div>
+      </div>
+    </header>
+
+    <div class="panel">
+      <!-- Left: Board -->
+      <section class="board" aria-label="Game board">
+        <div class="array-row" id="arrayRow" role="list" aria-label="code array"></div>
+
+        <div style="display:flex; gap:12px; align-items:center; justify-content:center;">
+          <button id="resetBtn" class="ghost small">Reset Array</button>
+          <button id="autoFillBtn" class="small">Auto-fill Random</button>
+          <button id="revealBtn" class="small ghost">Reveal Secret (debug)</button>
+        </div>
+
+        <div style="margin-top:12px; display:flex; justify-content:center; gap:12px; align-items:center;">
+          <div class="meta">Time left: <strong id="timer">—</strong></div>
+          <label style="display:flex; gap:6px; align-items:center; color:var(--muted);">
+            <input type="checkbox" id="timeAttack"> <span style="font-size:0.9rem">Time Attack</span>
+          </label>
+        </div>
+      </section>
+
+      <!-- Right: Operations -->
+      <aside class="ops" aria-label="Operations panel">
+        <div>
+          <h3>Insert</h3>
+          <div class="row">
+            <label style="width:60px">Index</label>
+            <input id="insertIndex" type="number" min="0" value="0">
+          </div>
+          <div class="row">
+            <label style="width:60px">Value</label>
+            <input id="insertVal" type="number" min="0" max="9" value="5">
+          </div>
+          <div class="row" style="margin-top:8px">
+            <button id="insertBtn">Insert</button>
+            <button id="pushBtn" class="ghost small">Push (end)</button>
+          </div>
+        </div>
+
+        <div>
+          <h3>Delete</h3>
+          <div class="row">
+            <label style="width:60px">Index</label>
+            <input id="delIndex" type="number" min="0" value="0">
+            <button id="deleteBtn" class="warn small">Delete</button>
+          </div>
+        </div>
+
+        <div>
+          <h3>Search Pattern</h3>
+          <div class="row">
+            <label style="width:60px">Pattern</label>
+            <input id="patternInput" type="text" placeholder="e.g. 2,1,4">
+          </div>
+          <div class="row" style="margin-top:8px">
+            <button id="searchBtn">Search</button>
+            <button id="autoGenBtn" class="ghost small">New Secret</button>
+          </div>
+        </div>
+
+        <div>
+          <h3>Feedback</h3>
+          <div class="feedback" id="feedback">Insert or search to begin. Valid indexes: 0–7.</div>
+        </div>
+
+        <div class="footer-row">
+          <div class="meta">Array size: <strong id="sizeInd">8</strong></div>
+          <div style="display:flex; gap:8px;">
+            <button id="soundToggle" class="ghost small">🔊 Sound: On</button>
+            <button id="levelUpBtn" class="small">Next Level</button>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <!-- Victory overlay/modal -->
+  <div class="overlay" id="overlay" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true">
+      <div class="sparkle"></div>
+      <h2 id="victoryTitle">Level Complete!</h2>
+      <p id="victoryText">You cracked the pattern.</p>
+      <div style="margin-top:16px; display:flex; gap:8px; justify-content:center;">
+        <button id="nextLevelBtn">Next Level</button>
+        <button id="closeOverlay" class="ghost">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /***********************
+     * Code Breaker Game
+     * Single-file implementation: HTML, CSS & JS
+     ***********************/
+
+    // Config
+    const SIZE = 8; // array size (cells)
+    const DEFAULT_TIME = 60; // seconds for time attack
+
+    // State
+    let arr = new Array(SIZE).fill(null); // each cell can be null or 0-9
+    let secretPattern = [];
+    let level = 1;
+    let soundOn = true;
+    let timerInterval = null;
+    let timeLeft = DEFAULT_TIME;
+    let timeAttack = false;
+    let searching = false;
+    let allowReveal = false; // for debug button
+
+    // DOM
+    const arrayRow = document.getElementById('arrayRow');
+    const feedback = document.getElementById('feedback');
+    const patternInd = document.getElementById('pattern-ind');
+    const levelInd = document.getElementById('level-ind');
+    const timerEl = document.getElementById('timer');
+    const sizeInd = document.getElementById('sizeInd');
+
+    // inputs/buttons
+    const insertIndex = document.getElementById('insertIndex');
+    const insertVal = document.getElementById('insertVal');
+    const insertBtn = document.getElementById('insertBtn');
+    const pushBtn = document.getElementById('pushBtn');
+
+    const delIndex = document.getElementById('delIndex');
+    const deleteBtn = document.getElementById('deleteBtn');
+
+    const patternInput = document.getElementById('patternInput');
+    const searchBtn = document.getElementById('searchBtn');
+    const autoGenBtn = document.getElementById('autoGenBtn');
+
+    const resetBtn = document.getElementById('resetBtn');
+    const autoFillBtn = document.getElementById('autoFillBtn');
+    const revealBtn = document.getElementById('revealBtn');
+
+    const timeAttackChk = document.getElementById('timeAttack');
+    const soundToggle = document.getElementById('soundToggle');
+    const levelUpBtn = document.getElementById('levelUpBtn');
+
+    // overlay
+    const overlay = document.getElementById('overlay');
+    const nextLevelBtn = document.getElementById('nextLevelBtn');
+    const closeOverlay = document.getElementById('closeOverlay');
+    const victoryTitle = document.getElementById('victoryTitle');
+    const victoryText = document.getElementById('victoryText');
+
+    // audio: simple WebAudio functions
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    const audioCtx = AudioCtx ? new AudioCtx() : null;
+
+    function beep(f=880, t=0.08, type='sine', vol=0.08) {
+      if (!soundOn || !audioCtx) return;
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.type = type;
+      o.frequency.value = f;
+      g.gain.value = vol;
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start();
+      o.stop(audioCtx.currentTime + t);
+    }
+    function buzz() { beep(120,0.25,'sawtooth',0.12); }
+    function fanfare() {
+      if (!soundOn || !audioCtx) return;
+      beep(450,0.12,'sine',0.06);
+      setTimeout(()=>beep(660,0.12,'sine',0.06),120);
+      setTimeout(()=>beep(880,0.18,'sine',0.08),260);
+    }
+
+    // Utilities
+    function setFeedback(text, type='info') {
+      feedback.classList.remove('success','error');
+      feedback.textContent = text;
+      if (type === 'success') feedback.classList.add('success');
+      if (type === 'error') feedback.classList.add('error');
+    }
+
+    function clamp(n, min, max){ return Math.max(min, Math.min(max, n)); }
+
+    // Render board
+    function renderBoard(animMap = {}) {
+      arrayRow.innerHTML = '';
+      for (let i=0;i<SIZE;i++){
+        const cell = document.createElement('div');
+        cell.className = 'cell' + (arr[i] === null ? ' empty' : '');
+        cell.setAttribute('role','listitem');
+        cell.innerHTML = `<div class="idx">${i}</div>` + (arr[i] === null ? '&nbsp;' : String(arr[i]));
+        // apply animation classes if provided in animMap
+        if (animMap[i]) cell.classList.add(animMap[i]);
+        arrayRow.appendChild(cell);
+      }
+    }
+
+    // Initialize board
+    function resetBoard() {
+      arr = new Array(SIZE).fill(null);
+      renderBoard();
+      setFeedback('Array cleared. Use insert or auto-fill to add digits.');
+    }
+
+    // Auto-fill random digits
+    function autoFill() {
+      for (let i=0;i<SIZE;i++){
+        arr[i] = Math.random() > 0.35 ? Math.floor(Math.random()*10) : null;
+      }
+      renderBoard();
+      setFeedback('Random values populated.');
+    }
+
+    // Parse pattern input
+    function parsePattern(text) {
+      if (!text) return null;
+      const parts = text.split(',').map(s=>s.trim()).filter(s=>s.length>0);
+      if (parts.length === 0) return null;
+      const nums = [];
+      for (let p of parts){
+        if (!/^\d$/.test(p)) return null;
+        nums.push(Number(p));
+      }
+      return nums;
+    }
+
+    // Secret pattern generation per level
+    function genSecret(lvl=1) {
+      // Level mapping: 1 => length 2, 2 => 3, 3 => 3 (maybe reversed)
+      let len = 2 + Math.min(2, lvl-1); // lvl1:2, lvl2:3, lvl3:4 maybe
+      if (lvl >= 3) len = 3; // keep reasonable
+      const pat = [];
+      for (let i=0;i<len;i++) pat.push(Math.floor(Math.random()*10));
+      secretPattern = pat;
+      patternInd.textContent = secretPattern.join(', '); // show for player (you can hide easily)
+      setFeedback(`New secret pattern generated (length ${pat.length}).`, 'success');
+    }
+
+    // Insert value at index: shift right
+    function insertAt(index, value) {
+      index = Math.floor(index);
+      if (index < 0 || index > SIZE-1) { setFeedback('Index out of bounds!', 'error'); buzz(); return false; }
+      // check if last cell empty available
+      if (arr[SIZE-1] !== null) {
+        setFeedback('No space to insert (rightmost cell occupied). Delete to free space.', 'error'); buzz(); return false;
+      }
+      // animate: mark shift-right for elements from last down to index
+      const animMap = {};
+      for (let i=SIZE-1;i>index;i--){
+        if (arr[i-1] !== null) animMap[i-1] = 'shift-right';
+      }
+      // create staggered effect: apply then update
+      renderBoard(animMap);
+      // after short delay update array values and render new cell fade-in
+      setTimeout(()=>{
+        for (let i=SIZE-1;i>index;i--){
+          arr[i] = arr[i-1];
+        }
+        arr[index] = clamp(value,0,9);
+        // mark new cell fade-in
+        const anim2 = {}; anim2[index] = 'fade-in';
+        renderBoard(anim2);
+        beep(880,0.06,'sine',0.06);
+        setFeedback(`Inserted ${value} at index ${index}!`, 'success');
+      }, 220);
+      return true;
+    }
+
+    // Push at end
+    function pushEnd(value) {
+      // find first empty from left; if none, error
+      const firstEmpty = arr.indexOf(null);
+      if (firstEmpty === -1) { setFeedback('No empty slot to push.', 'error'); buzz(); return; }
+      arr[firstEmpty] = clamp(value,0,9);
+      const anim = {}; anim[firstEmpty] = 'fade-in';
+      renderBoard(anim);
+      beep(880,0.06,'sine',0.06);
+      setFeedback(`Pushed ${value} at index ${firstEmpty}.`, 'success');
+    }
+
+    // Delete at index: shift left
+    function deleteAt(index) {
+      index = Math.floor(index);
+      if (index < 0 || index > SIZE-1) { setFeedback('Index out of bounds!', 'error'); buzz(); return false; }
+      if (arr[index] === null) { setFeedback('Cell already empty.', 'error'); buzz(); return false; }
+      // animate shrink out the target cell then shift left
+      const animMap = {}; animMap[index] = 'shrink-out';
+      renderBoard(animMap);
+      setTimeout(()=>{
+        for (let i=index;i<SIZE-1;i++){
+          arr[i] = arr[i+1];
+        }
+        arr[SIZE-1] = null;
+        // animate shift-left briefly for affected
+        const anim2 = {};
+        for (let i=index;i<SIZE-1;i++) anim2[i] = 'shift-left';
+        renderBoard(anim2);
+        setTimeout(()=>{ renderBoard(); }, 260);
+        setFeedback(`Deleted element at index ${index}.`, 'success');
+        beep(440,0.06,'sine',0.05);
+      }, 240);
+      return true;
+    }
+
+    // Reset array
+    function resetGame() {
+      resetBoard();
+      genSecret(level);
+      stopTimer();
+      timerEl.textContent = '—';
+      timeLeft = DEFAULT_TIME;
+    }
+
+    // Linear search for subarray pattern with highlight animation
+    async function searchPattern(pat, silent=false) {
+      if (!Array.isArray(pat) || pat.length === 0) { setFeedback('Enter a valid pattern (e.g., 1,2,3).', 'error'); buzz(); return; }
+      // convert nulls to sentinel and prepare
+      const flat = arr.map(x=>x===null?null:x);
+      const n = flat.length;
+      const m = pat.length;
+      if (m > n) { setFeedback('Pattern longer than array length.', 'error'); buzz(); return; }
+
+      searching = true;
+      setFeedback('Searching pattern…');
+      // sequentially check each window
+      for (let start=0; start<=n-m; start++) {
+        // highlight window
+        highlightWindow(start, m, 'highlight');
+        await wait(420);
+        // check equality (nulls break)
+        let match = true;
+        for (let j=0;j<m;j++){
+          if (flat[start+j] === null || flat[start+j] !== pat[j]) { match = false; break; }
+        }
+        // update highlight to match or revert
+        if (match) {
+          highlightWindow(start, m, 'match');
+          searching = false;
+          setFeedback(`Pattern found at index ${start}!`, 'success');
+          fanfare();
+          showVictory(start, pat);
+          return start;
+        } else {
+          // remove highlight
+          highlightWindow(start, m, '');
+        }
+      }
+      searching = false;
+      setFeedback('Pattern not found.', 'error');
+      buzz();
+      return -1;
+    }
+
+    // helper to highlight a window of cells with class
+    function highlightWindow(start, len, cls) {
+      const children = Array.from(arrayRow.children);
+      // clear any previous highlight/match classes
+      for (let c of children) c.classList.remove('highlight','match');
+      for (let i=start;i<start+len;i++){
+        if (children[i]) {
+          if (cls) children[i].classList.add(cls);
+        }
+      }
+    }
+
+    // wait utility
+    function wait(ms){ return new Promise(res => setTimeout(res, ms)); }
+
+    // Show victory modal and optionally time used
+    function showVictory(foundIndex, pat) {
+      overlay.classList.add('show');
+      overlay.setAttribute('aria-hidden','false');
+      victoryTitle.textContent = `Level ${level} Complete!`;
+      let extra = '';
+      if (timeAttack) {
+        const used = DEFAULT_TIME - timeLeft;
+        extra = `You cracked the code in ${used} seconds!`;
+      } else {
+        extra = `Pattern [${pat.join(',')}] found at index ${foundIndex}.`;
+      }
+      victoryText.textContent = extra;
+      // stop timer if running
+      stopTimer();
+      fanfare();
+    }
+
+    function closeVictory() {
+      overlay.classList.remove('show');
+      overlay.setAttribute('aria-hidden','true');
+    }
+
+    // Timer functions
+    function startTimer() {
+      stopTimer();
+      timeLeft = DEFAULT_TIME;
+      timerEl.textContent = `${timeLeft}s`;
+      timerInterval = setInterval(()=>{
+        timeLeft--;
+        timerEl.textContent = `${timeLeft}s`;
+        if (timeLeft <= 0) {
+          stopTimer();
+          setFeedback('Time up! Reset or try again.', 'error');
+          buzz();
+        }
+      }, 1000);
+    }
+    function stopTimer() {
+      if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+    }
+
+    // Event handlers
+    insertBtn.addEventListener('click', ()=>{
+      if (searching) return setFeedback('Wait — search in progress.', 'error');
+      const idx = Number(insertIndex.value);
+      const val = Number(insertVal.value);
+      if (!Number.isInteger(idx) || idx < 0 || idx >= SIZE) { setFeedback('Enter valid index (0-'+(SIZE-1)+')', 'error'); return; }
+      if (!Number.isInteger(val) || val < 0 || val > 9) { setFeedback('Enter digit 0-9', 'error'); return; }
+      insertAt(idx, val);
+    });
+
+    pushBtn.addEventListener('click', ()=>{
+      const v = Number(insertVal.value);
+      if (!Number.isInteger(v) || v < 0 || v > 9) { setFeedback('Enter digit 0-9', 'error'); return; }
+      pushEnd(v);
+    });
+
+    deleteBtn.addEventListener('click', ()=>{
+      if (searching) return setFeedback('Wait — search in progress.', 'error');
+      const idx = Number(delIndex.value);
+      if (!Number.isInteger(idx) || idx < 0 || idx >= SIZE) { setFeedback('Enter valid index (0-'+(SIZE-1)+')', 'error'); return; }
+      deleteAt(idx);
+    });
+
+    searchBtn.addEventListener('click', async ()=>{
+      if (searching) return setFeedback('Another search is running.', 'error');
+      const pat = parsePattern(patternInput.value) || secretPattern;
+      if (!pat) { setFeedback('Enter a valid pattern (e.g., 1,2,3)', 'error'); return; }
+      await searchPattern(pat);
+    });
+
+    autoGenBtn.addEventListener('click', ()=>{
+      genSecret(level);
+    });
+
+    resetBtn.addEventListener('click', ()=>{ resetBoard(); });
+
+    autoFillBtn.addEventListener('click', ()=>{ autoFill(); });
+
+    revealBtn.addEventListener('click', ()=>{
+      // toggles reveal for debug; shows secret pattern visibly
+      allowReveal = !allowReveal;
+      if (allowReveal) {
+        patternInd.textContent = secretPattern.join(', ');
+        setFeedback('Secret pattern revealed (debug).', 'info');
+      } else {
+        patternInd.textContent = '—';
+        setFeedback('Secret pattern hidden (debug).', 'info');
+      }
+    });
+
+    timeAttackChk.addEventListener('change', (e)=>{
+      timeAttack = e.target.checked;
+      if (timeAttack) {
+        startTimer();
+        setFeedback('Time Attack ON — you have 60 seconds!', 'info');
+      } else {
+        stopTimer();
+        timerEl.textContent = '—';
+        setFeedback('Time Attack OFF.');
+      }
+    });
+
+    soundToggle.addEventListener('click', ()=>{
+      soundOn = !soundOn;
+      soundToggle.textContent = soundOn ? '🔊 Sound: On' : '🔇 Sound: Off';
+    });
+
+    levelUpBtn.addEventListener('click', ()=>{
+      level = Math.min(level+1, 3); // cap at 3
+      levelInd.textContent = level;
+      genSecret(level);
+      setFeedback(`Advanced to level ${level}.`, 'success');
+    });
+
+    nextLevelBtn.addEventListener('click', ()=>{
+      closeVictory();
+      level = Math.min(level+1, 3);
+      levelInd.textContent = level;
+      genSecret(level);
+      resetBoard();
+    });
+
+    closeOverlay.addEventListener('click', ()=>{ closeVictory(); });
+
+    overlay.addEventListener('click', (e)=>{
+      if (e.target === overlay) closeVictory();
+    });
+
+    // initial setup
+    function init() {
+      sizeInd.textContent = SIZE;
+      levelInd.textContent = level;
+      resetBoard();
+      genSecret(level);
+      patternInd.textContent = allowReveal ? secretPattern.join(', ') : '—';
+    }
+
+    // Parse secret pattern from input if user typed, else generate
+    document.getElementById('patternInput').addEventListener('keyup', (e)=>{
+      const s = e.target.value.trim();
+      if (s.length === 0) {
+        setFeedback('Using secret pattern. Or type one to search manually.');
+      }
+    });
+
+    // initial call
+    init();
+
+    // convenience: allow Enter to trigger insert when focus on value or index
+    [insertVal, insertIndex].forEach(inp=>{
+      inp.addEventListener('keypress', (e)=>{
+        if (e.key === 'Enter') insertBtn.click();
+      });
+    });
+
+    // keyboard handy delete: press 'd' to delete at index shown in delIndex
+    document.addEventListener('keydown', (e)=>{
+      if (e.key === 'd' && document.activeElement.tagName === 'BODY') {
+        deleteBtn.click();
+      }
+    });
+
+    // prevent accidental text selection while clicking many buttons (UI nicety)
+    document.addEventListener('mousedown', e=> {
+      if (e.detail > 1) e.preventDefault();
+    });
+  </script>
+</body>
+</html>
